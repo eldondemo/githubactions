@@ -9,9 +9,13 @@ Use environments to gate deployments, scope secrets, and apply least-privilege `
 ## Setup (one-time, in GitHub UI)
 
 1. **Create environments:** Settings → Environments → create `staging` and `production`
-2. **Add protection rule:** On `production`, enable "Required reviewers" and add yourself
-3. **Add repo-level secret:** Settings → Secrets and variables → Actions → `REPO_API_KEY` (any dummy value)
-4. **Add environment secrets:** In each environment, add `ENV_API_KEY` with a different value per environment
+2. **Add repo-level secret:** Settings → Secrets and variables → Actions → `REPO_API_KEY` (any dummy value)
+3. **Add environment secrets:** In each environment, add `ENV_API_KEY` with a different value per environment
+
+> **Note — Required reviewers (approval gates):** On GitHub Team/Enterprise or personal-account public repos,
+> you can also enable **"Required reviewers"** under Deployment protection rules on the production environment.
+> This adds a manual approval step before the production job runs. If your org plan doesn't support it,
+> the demo still works — production just deploys automatically after staging. Mention the concept during the talk track.
 
 ## Key Concepts
 
@@ -33,8 +37,9 @@ Use environments to gate deployments, scope secrets, and apply least-privilege `
 deploy-staging          ← runs immediately, uses staging secrets
     │
     ▼
-deploy-production       ← waits for staging + manual approval
-    
+deploy-production       ← waits for staging to finish, then deploys
+                          (+ manual approval if protection rule is enabled)
+
 permission-demo         ← runs in parallel, shows GITHUB_TOKEN override
 ```
 
@@ -42,7 +47,8 @@ permission-demo         ← runs in parallel, shows GITHUB_TOKEN override
 
 - Push a change to `demos/demo2/` or the workflow file
 - Run manually from the Actions tab
-- Staging deploys automatically; production waits for approval
+- Staging deploys first, then production follows automatically
+- If you have required reviewers enabled, production will pause for approval
 - Create an open issue first so the permission-demo job can post a comment
 
 ## "Small Upgrade" — Job-Level Permission Override
