@@ -1,0 +1,73 @@
+# Demo 1 — Workflows (Triggers, Jobs, Steps, Marketplace Actions)
+#
+# Key concepts:
+#   - name / on / jobs / steps
+#   - Triggers: push + workflow_dispatch (manual)
+#   - uses (marketplace action) vs run (shell command)
+#   - $GITHUB_STEP_SUMMARY for rich log output
+#   - Matrix strategy (the "small upgrade")
+
+name: "Demo 1 — Workflows"
+
+# ── Triggers ────────────────────────────────────────────────
+on:
+  push:
+    branches: [main]
+
+  workflow_dispatch:
+    inputs:
+      greeting:
+        description: "Who should we greet?"
+        required: false
+        default: "GitHub Actions Workshop"
+
+# ── Jobs ────────────────────────────────────────────────────
+jobs:
+  hello:
+    name: "Greet (${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
+
+    # "Small Upgrade" — matrix across two OS runners
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      # ── Step 1: Checkout the repo (marketplace action) ──
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Step 2: Run a shell command ──
+      - name: Run greeting script
+        shell: bash
+        run: |
+          chmod +x scripts/greet.sh
+          scripts/greet.sh "${{ github.event.inputs.greeting || 'GitHub Actions Workshop' }}"
+
+      # ── Step 3: Show environment info ──
+      - name: Print environment details
+        shell: bash
+        run: |
+          echo "🔹 Repository : ${{ github.repository }}"
+          echo "🔹 Branch     : ${{ github.ref_name }}"
+          echo "🔹 Trigger    : ${{ github.event_name }}"
+          echo "🔹 Runner OS  : ${{ runner.os }}"
+          echo "🔹 Actor      : ${{ github.actor }}"
+
+      # ── Step 4: Write a Job Summary (GITHUB_STEP_SUMMARY) ──
+      - name: Write job summary
+        shell: bash
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## 🚀 Demo 1 — Workflow Run Summary
+
+          | Detail        | Value |
+          |---------------|-------|
+          | **Repository** | `${{ github.repository }}` |
+          | **Branch**     | `${{ github.ref_name }}` |
+          | **Trigger**    | `${{ github.event_name }}` |
+          | **Runner OS**  | `${{ runner.os }}` |
+          | **Actor**      | `${{ github.actor }}` |
+
+          > ✅ Workflow completed successfully on **${{ matrix.os }}**
+          EOF
