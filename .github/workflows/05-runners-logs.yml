@@ -1,0 +1,203 @@
+# Demo 5 — Runners (GitHub-hosted) and Workflow Logs
+#
+# Key concepts:
+#   - runs-on: choosing a runner (ubuntu, windows, macos)
+#   - Log groups (folding), annotations (notice/warning/error)
+#   - Artifacts: upload test reports and debug info
+#   - Deliberate failure + if: failure() to capture state
+#   - $GITHUB_STEP_SUMMARY for rich output
+
+name: "Demo 5 — Runners & Logs"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/05-*"
+      - "demos/demo5/**"
+
+  workflow_dispatch:
+    inputs:
+      should-fail:
+        description: "Simulate a test failure?"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  # ── Job 1: Runner info + log features (Ubuntu) ───────────
+  explore-runner:
+    name: "Explore Runner (ubuntu-latest)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Log group: Runner details (foldable in UI) ──
+      - name: Runner details (log group demo)
+        run: |
+          echo "::group::🖥️ Runner Hardware"
+          echo "OS:     $(uname -s)"
+          echo "Arch:   $(uname -m)"
+          echo "CPUs:   $(nproc)"
+          echo "Memory: $(free -h | awk '/Mem:/ {print $2}')"
+          echo "Disk:   $(df -h / | awk 'NR==2 {print $4}') free"
+          echo "::endgroup::"
+
+          echo "::group::📦 Pre-installed Tools"
+          echo "Node:   $(node --version 2>/dev/null || echo 'not found')"
+          echo "Python: $(python3 --version 2>/dev/null || echo 'not found')"
+          echo "Docker: $(docker --version 2>/dev/null || echo 'not found')"
+          echo "Git:    $(git --version 2>/dev/null || echo 'not found')"
+          echo "::endgroup::"
+
+          echo "::group::🌍 Environment Variables (selected)"
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
+          echo "RUNNER_OS: $RUNNER_OS"
+          echo "RUNNER_ARCH: $RUNNER_ARCH"
+          echo "RUNNER_TEMP: $RUNNER_TEMP"
+          echo "::endgroup::"
+
+      # ── Annotations: notice, warning, error ──
+      - name: Annotation examples
+        run: |
+          echo "::notice file=demos/demo5/generate-report.sh,line=1::ℹ️ This is a notice annotation — shows as a blue info bar"
+          echo "::warning file=demos/demo5/generate-report.sh,line=5::⚠️ This is a warning annotation — shows as a yellow bar"
+          # Not adding ::error:: here since it would mark the step as failed in some views
+
+      # ── Step summary ──
+      - name: Write runner summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 🖥️ Runner Info
+
+          | Detail | Value |
+          |--------|-------|
+          | **OS** | $(uname -s) $(uname -r) |
+          | **Arch** | $(uname -m) |
+          | **CPUs** | $(nproc) |
+          | **Memory** | $(free -h | awk '/Mem:/ {print $2}') |
+          | **Node** | $(node --version 2>/dev/null) |
+          | **Python** | $(python3 --version 2>/dev/null) |
+
+          > 💡 Log groups fold neatly in the Actions UI — expand them above to see details
+          EOF
+
+  # ── Job 2: Multi-OS comparison ────────────────────────────
+  multi-os:
+    name: "Run on ${{ matrix.os }}"
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Show OS info
+        shell: bash
+        run: |
+          echo "Running on: $RUNNER_OS ($RUNNER_ARCH)"
+          echo "Hostname: $(hostname)"
+
+      - name: Write OS summary
+        shell: bash
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 🏃 Runner: ${{ matrix.os }}
+
+          | Detail | Value |
+          |--------|-------|
+          | **RUNNER_OS** | $RUNNER_OS |
+          | **RUNNER_ARCH** | $RUNNER_ARCH |
+          | **Hostname** | $(hostname) |
+          EOF
+
+  # ── Job 3: Artifacts + deliberate failure ─────────────────
+  test-and-artifacts:
+    name: "Test & Artifacts"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tests (may fail)
+        id: tests
+        continue-on-error: true
+        run: |
+          chmod +x demos/demo5/generate-report.sh
+          if [ "${{ github.event.inputs.should-fail }}" == "true" ]; then
+            demos/demo5/generate-report.sh fail
+          else
+            demos/demo5/generate-report.sh pass
+          fi
+
+      # ── Always upload the test report ──
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: test-reports/
+          retention-days: 5
+
+      # ── "Small Upgrade": capture extra debug info ONLY on failure ──
+      - name: Capture debug info (only on failure)
+        if: failure() || steps.tests.outcome == 'failure'
+        run: |
+          echo "::group::🔍 Debug — Process list"
+          ps aux | head -20
+          echo "::endgroup::"
+
+          echo "::group::🔍 Debug — Disk usage"
+          df -h
+          echo "::endgroup::"
+
+          echo "::group::🔍 Debug — Environment"
+          env | sort
+          echo "::endgroup::"
+
+          mkdir -p debug-info
+          env | sort > debug-info/environment.txt
+          ps aux > debug-info/processes.txt
+          df -h > debug-info/disk.txt
+
+      - name: Upload debug info (only on failure)
+        if: failure() || steps.tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-info
+          path: debug-info/
+          retention-days: 5
+
+      # ── Annotate failure ──
+      - name: Report test outcome
+        if: always()
+        run: |
+          if [ "${{ steps.tests.outcome }}" == "failure" ]; then
+            echo "::error::❌ Tests failed! Check the test-report and debug-info artifacts."
+            cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## ❌ Tests Failed
+
+          - Download the **test-report** artifact for test results
+          - Download the **debug-info** artifact for environment state at failure time
+          - Use **Re-run failed jobs** to retry without re-running passing jobs
+
+          > 💡 The `if: failure()` conditional uploaded extra debug info automatically
+          EOF
+          else
+            echo "::notice::✅ All tests passed!"
+            cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## ✅ Tests Passed
+
+          - The **test-report** artifact is available for download
+          - Try re-running with `should-fail: true` to see the failure flow
+
+          > 💡 Artifacts are your "black box recorder" — always upload them
+          EOF
+          fi

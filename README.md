@@ -12,6 +12,7 @@ A hands-on workshop repo for learning GitHub Actions — from basic workflows to
 │   ├── demo3/               # Demo 3 files + docs
 │   ├── demo4/               # Demo 4 files + docs
 │   ├── demo4b/              # Demo 4b files + docs
+│   ├── demo5/               # Demo 5 files + docs
 │   └── ...
 └── README.md
 ```
@@ -25,6 +26,7 @@ A hands-on workshop repo for learning GitHub Actions — from basic workflows to
 | 3 | Policies, Reusable Workflows & Caching | `03-reuse-cache.yml` + `_reusable-test.yml` | [demo3.md](demos/demo3/demo3.md) |
 | 4 | Custom Actions (JavaScript + Composite) | `04-custom-actions.yml` | [demo4.md](demos/demo4/demo4.md) |
 | 4b | Custom Docker Action | `04b-docker-action.yml` | [demo4b.md](demos/demo4b/demo4b.md) |
+| 5 | Runners (GitHub-hosted) & Workflow Logs | `05-runners-logs.yml` | [demo5.md](demos/demo5/demo5.md) |
 
 > Each workflow only triggers on changes to its own demo folder or workflow file. Push safely without running everything.
 
