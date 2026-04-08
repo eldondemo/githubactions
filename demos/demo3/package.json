@@ -1,0 +1,15 @@
+{
+  "name": "demo3-app",
+  "version": "1.0.0",
+  "description": "Small Node app for Demo 3 — caching dependencies",
+  "scripts": {
+    "test": "jest --verbose",
+    "lint": "echo 'Lint passed (no linter configured)'"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

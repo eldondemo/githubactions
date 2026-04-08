@@ -1,0 +1,61 @@
+# Demo 3 — Policies, Sharing Workflows, and Caching
+#
+# Key concepts:
+#   - Reusable workflows (workflow_call) reduce duplication
+#   - Passing inputs to reusable workflows
+#   - actions/cache for dependency caching
+#   - Policy concepts (discussed in talk track)
+#
+# "Small Upgrade": passes different node versions to show how
+# the reusable workflow accepts inputs
+
+name: "Demo 3 — Reuse & Cache"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/03-*"
+      - ".github/workflows/_reusable-*"
+      - "demos/demo3/**"
+
+  workflow_dispatch:
+
+jobs:
+  # ── Call the reusable workflow with Node 20 ─────────────────
+  test-node-20:
+    name: "Test (Node 20 — via reusable workflow)"
+    uses: ./.github/workflows/_reusable-test.yml
+    with:
+      node-version: "20"
+      working-directory: "demos/demo3"
+
+  # ── "Small Upgrade" — call again with Node 22 ──────────────
+  test-node-22:
+    name: "Test (Node 22 — via reusable workflow)"
+    uses: ./.github/workflows/_reusable-test.yml
+    with:
+      node-version: "22"
+      working-directory: "demos/demo3"
+
+  # ── Summary job — runs after both test jobs ─────────────────
+  summary:
+    name: "Summary"
+    runs-on: ubuntu-latest
+    needs: [test-node-20, test-node-22]
+
+    steps:
+      - name: Write final summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## 🔄 Demo 3 — Reuse & Cache Summary
+
+          | Concept             | What we showed |
+          |---------------------|----------------|
+          | **Reusable workflow** | `_reusable-test.yml` called twice with different inputs |
+          | **Inputs**           | `node-version` passed as `20` and `22` |
+          | **Caching**          | `actions/cache` keyed on `package-lock.json` hash |
+          | **Policies**         | (Talk track) Org/repo can restrict which actions are allowed |
+
+          > 💡 Run this workflow twice to see the cache go from MISS → HIT
+          EOF

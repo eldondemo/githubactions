@@ -1,0 +1,79 @@
+# Reusable workflow — called by other workflows via workflow_call
+#
+# Key concepts:
+#   - on: workflow_call makes this a reusable workflow
+#   - inputs let the caller pass configuration (e.g. node version)
+#   - This is the "internal platform" pattern: define once, call many times
+
+name: "_Reusable — Test (Node.js)"
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: "Node.js version to use"
+        required: false
+        type: string
+        default: "20"
+      working-directory:
+        description: "Directory containing the Node.js app"
+        required: false
+        type: string
+        default: "demos/demo3"
+
+jobs:
+  test:
+    name: "Test (Node ${{ inputs.node-version }})"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Cache node_modules based on package-lock.json hash ──
+      - name: Cache npm dependencies
+        id: cache-npm
+        uses: actions/cache@v4
+        with:
+          path: ${{ inputs.working-directory }}/node_modules
+          key: npm-${{ runner.os }}-node${{ inputs.node-version }}-${{ hashFiles(format('{0}/package-lock.json', inputs.working-directory)) }}
+          restore-keys: |
+            npm-${{ runner.os }}-node${{ inputs.node-version }}-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Install dependencies
+        if: steps.cache-npm.outputs.cache-hit != 'true'
+        run: npm install
+
+      - name: Show cache status
+        run: |
+          if [ "${{ steps.cache-npm.outputs.cache-hit }}" == "true" ]; then
+            echo "⚡ Cache HIT — skipped npm install"
+          else
+            echo "❄️ Cache MISS — ran npm install"
+          fi
+
+      - name: Run tests
+        run: npm test
+
+      - name: Write summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 🧪 Test Results (Node ${{ inputs.node-version }})
+
+          | Detail        | Value |
+          |---------------|-------|
+          | **Node**      | ${{ inputs.node-version }} |
+          | **Cache**     | ${{ steps.cache-npm.outputs.cache-hit == 'true' && '⚡ HIT' || '❄️ MISS' }} |
+          | **Directory** | \`${{ inputs.working-directory }}\` |
+
+          > ✅ Tests passed
+          EOF
