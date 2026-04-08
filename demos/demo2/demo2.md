@@ -22,6 +22,7 @@ Use environments to gate deployments, scope secrets, and apply least-privilege `
 - **Environments** gate deployments and scope secrets to specific stages
 - **Repo secrets** are available in all jobs; **environment secrets** only in jobs targeting that environment
 - `permissions:` at workflow level sets a tight default; jobs can override with only what they need
+- **`GITHUB_TOKEN`** — a short-lived token automatically created for every workflow run. It lets your workflow interact with the GitHub API (e.g. post comments, create releases, push code) without needing a personal access token. It expires when the job finishes and its permissions are controlled by the `permissions:` key in your workflow YAML.
 - `GITHUB_TOKEN` follows least-privilege — start with `contents: read` and add more per job
 
 ## What's in This Demo
