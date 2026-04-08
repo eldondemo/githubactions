@@ -13,6 +13,9 @@ name: "Demo 1 — Workflows"
 on:
   push:
     branches: [main]
+    paths:
+      - ".github/workflows/01-*"
+      - "demos/demo1/**"
 
   workflow_dispatch:
     inputs:
@@ -41,8 +44,8 @@ jobs:
       - name: Run greeting script
         shell: bash
         run: |
-          chmod +x scripts/greet.sh
-          scripts/greet.sh "${{ github.event.inputs.greeting || 'GitHub Actions Workshop' }}"
+          chmod +x demos/demo1/greet.sh
+          demos/demo1/greet.sh "${{ github.event.inputs.greeting || 'GitHub Actions Workshop' }}"
 
       # ── Step 3: Show environment info ──
       - name: Print environment details
