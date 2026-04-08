@@ -75,6 +75,33 @@ jobs:
 2. Watch both Node 20 and Node 22 jobs run in parallel
 3. Check the logs for "❄️ Cache MISS"
 4. Run the workflow again — logs should show "⚡ Cache HIT"
+5. Check the **Summary** job — it shows test count and cache status **returned from the reusable workflow via outputs**
+
+## Reusable Workflow Outputs
+
+The reusable workflow passes data *back* to the caller using `outputs`:
+
+**In `_reusable-test.yml`:**
+```yaml
+on:
+  workflow_call:
+    outputs:
+      test-count:
+        value: ${{ jobs.test.outputs.test-count }}
+      cache-status:
+        value: ${{ jobs.test.outputs.cache-status }}
+```
+
+**In the caller (`03-reuse-cache.yml`), the summary job reads them:**
+```yaml
+needs: [test-node-20, test-node-22]
+steps:
+  - run: |
+      echo "Node 20 ran ${{ needs.test-node-20.outputs.test-count }} tests"
+      echo "Node 22 ran ${{ needs.test-node-22.outputs.test-count }} tests"
+```
+
+This shows the full loop: caller sends **inputs** → reusable workflow returns **outputs**.
 
 ## Policy Concepts (Talk Track)
 

@@ -47,15 +47,24 @@ jobs:
     steps:
       - name: Write final summary
         run: |
-          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ## 🔄 Demo 3 — Reuse & Cache Summary
 
           | Concept             | What we showed |
           |---------------------|----------------|
-          | **Reusable workflow** | `_reusable-test.yml` called twice with different inputs |
-          | **Inputs**           | `node-version` passed as `20` and `22` |
-          | **Caching**          | `actions/cache` keyed on `package-lock.json` hash |
+          | **Reusable workflow** | \`_reusable-test.yml\` called twice with different inputs |
+          | **Inputs**           | \`node-version\` passed as \`20\` and \`22\` |
+          | **Caching**          | \`actions/cache\` keyed on \`package-lock.json\` hash |
           | **Policies**         | (Talk track) Org/repo can restrict which actions are allowed |
 
-          > 💡 Run this workflow twice to see the cache go from MISS → HIT
+          ### 📊 Outputs from Reusable Workflows
+
+          | Job | Tests Run | Cache |
+          |-----|-----------|-------|
+          | **Node 20** | ${{ needs.test-node-20.outputs.test-count }} | ${{ needs.test-node-20.outputs.cache-status }} |
+          | **Node 22** | ${{ needs.test-node-22.outputs.test-count }} | ${{ needs.test-node-22.outputs.cache-status }} |
+
+          > 💡 These values were **returned by the reusable workflow** via \`outputs\`
+          >
+          > Run this workflow twice to see the cache go from MISS → HIT
           EOF

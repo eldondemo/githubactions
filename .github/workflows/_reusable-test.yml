@@ -20,11 +20,24 @@ on:
         required: false
         type: string
         default: "demos/demo3"
+    # ── Outputs — pass data back to the caller ──────────────
+    outputs:
+      test-count:
+        description: "Number of tests that ran"
+        value: ${{ jobs.test.outputs.test-count }}
+      cache-status:
+        description: "Whether the cache was hit or missed"
+        value: ${{ jobs.test.outputs.cache-status }}
 
 jobs:
   test:
     name: "Test (Node ${{ inputs.node-version }})"
     runs-on: ubuntu-latest
+
+    # ── Job outputs — fed into workflow outputs above ────────
+    outputs:
+      test-count: ${{ steps.test-results.outputs.test-count }}
+      cache-status: ${{ steps.cache-npm.outputs.cache-hit == 'true' && 'HIT' || 'MISS' }}
 
     defaults:
       run:
@@ -62,7 +75,19 @@ jobs:
           fi
 
       - name: Run tests
-        run: npm test
+        id: test-results
+        run: |
+          # Run jest with JSON output to extract test count
+          npx jest --verbose --json --outputFile=test-results.json 2>&1 || true
+          if [ -f test-results.json ]; then
+            TEST_COUNT=$(node -e "const r=require('./test-results.json'); console.log(r.numPassedTests + r.numFailedTests)")
+          else
+            TEST_COUNT="unknown"
+          fi
+          echo "test-count=${TEST_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "📊 Tests run: ${TEST_COUNT}"
+          # Fail the step if any tests failed
+          npx jest --verbose
 
       - name: Write summary
         run: |
