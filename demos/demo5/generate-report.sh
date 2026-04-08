@@ -6,6 +6,8 @@ MODE="${1:-pass}"
 REPORT_DIR="test-reports"
 mkdir -p "$REPORT_DIR"
 
+error
+
 cat > "$REPORT_DIR/test-results.txt" <<EOF
 ========================================
   Test Report — $(date -u)
