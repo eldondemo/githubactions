@@ -1,0 +1,255 @@
+# Demo 7 — CI/CD: Python Application Pipeline
+# Full pipeline: lint → test → build artifact → deploy (staging + production)
+# Ties together concepts from all previous demos
+
+name: "Demo 7 — Python CI/CD"
+
+on:
+  push:
+    paths:
+      - "demos/demo7/**"
+      - ".github/workflows/07-python-cicd.yml"
+    branches: [main]
+  pull_request:
+    paths:
+      - "demos/demo7/**"
+      - ".github/workflows/07-python-cicd.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: demos/demo7
+
+jobs:
+  # ─── Job 1: Lint with Ruff ──────────────────────────────────────
+  lint:
+    name: "Lint (Ruff)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-lint-${{ hashFiles('demos/demo7/requirements.txt') }}
+          restore-keys: pip-${{ runner.os }}-lint-
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff linter
+        run: |
+          echo "::group::🔍 Ruff lint results"
+          ruff check . --output-format=text
+          echo "::endgroup::"
+
+      - name: Run Ruff formatter check
+        run: |
+          ruff format --check .
+
+      - name: Lint summary
+        if: always()
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## 🔍 Lint Results
+          - **Tool:** Ruff
+          - **Status:** ${{ job.status == 'success' && '✅ Passed' || '❌ Failed' }}
+          EOF
+
+  # ─── Job 2: Test with Pytest ────────────────────────────────────
+  test:
+    name: "Test (Python ${{ matrix.python-version }})"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('demos/demo7/requirements.txt') }}
+          restore-keys: pip-${{ runner.os }}-py${{ matrix.python-version }}-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          echo "::group::🧪 Pytest output"
+          pytest test_app.py -v --tb=short --junitxml=test-results.xml 2>&1 | tee pytest-output.txt
+          echo "::endgroup::"
+
+      - name: Test summary
+        if: always()
+        run: |
+          TESTS=$(grep -c "PASSED\|FAILED" pytest-output.txt 2>/dev/null || echo "?")
+          PASSED=$(grep -c "PASSED" pytest-output.txt 2>/dev/null || echo "0")
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 🧪 Test Results (Python ${{ matrix.python-version }})
+          - **Total tests:** ${TESTS}
+          - **Passed:** ${PASSED}
+          - **Status:** ${{ job.status == 'success' && '✅ All passed' || '❌ Some failed' }}
+          EOF
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-py${{ matrix.python-version }}
+          path: |
+            demos/demo7/test-results.xml
+            demos/demo7/pytest-output.txt
+
+  # ─── Job 3: Build artifact ─────────────────────────────────────
+  build:
+    name: "Build"
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Create build artifact
+        run: |
+          echo "::group::📦 Building application package"
+          BUILD_DIR="build"
+          mkdir -p "$BUILD_DIR"
+
+          # Copy application code
+          cp app.py "$BUILD_DIR/"
+          cp requirements.txt "$BUILD_DIR/"
+
+          # Add build metadata
+          cat > "$BUILD_DIR/BUILD_INFO.txt" <<EOF
+          Build Date:   $(date -u)
+          Commit SHA:   ${{ github.sha }}
+          Commit Short: ${{ github.sha }}
+          Branch:       ${{ github.ref_name }}
+          Run ID:       ${{ github.run_id }}
+          Run Number:   ${{ github.run_number }}
+          Python:       3.12
+          EOF
+
+          echo "::endgroup::"
+          echo "✅ Build artifact created"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-build-${{ github.run_number }}
+          path: demos/demo7/build/
+          retention-days: 5
+
+      - name: Build summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 📦 Build Artifact
+          - **Artifact name:** \`app-build-${{ github.run_number }}\`
+          - **Commit:** \`${{ github.sha }}\`
+          - **Contents:** app.py, requirements.txt, BUILD_INFO.txt
+          EOF
+
+  # ─── Job 4: Deploy to Staging ───────────────────────────────────
+  deploy-staging:
+    name: "Deploy → Staging"
+    runs-on: ubuntu-latest
+    needs: [build]
+    environment: staging
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build-${{ github.run_number }}
+          path: deploy/
+
+      - name: Verify artifact
+        run: |
+          echo "::group::📋 Artifact contents"
+          ls -la deploy/
+          cat deploy/BUILD_INFO.txt
+          echo "::endgroup::"
+        working-directory: .
+
+      - name: Simulate staging deployment
+        run: |
+          echo "🚀 Deploying to STAGING..."
+          echo "   → Extracting artifact"
+          echo "   → Installing dependencies"
+          echo "   → Starting application"
+          sleep 2
+          echo "   → Running smoke test"
+          python deploy/app.py
+          echo ""
+          echo "✅ Staging deployment complete!"
+        working-directory: .
+
+      - name: Staging summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 🚀 Staging Deployment
+          - **Environment:** staging
+          - **Artifact:** \`app-build-${{ github.run_number }}\`
+          - **Status:** ✅ Deployed and smoke-tested
+          EOF
+        working-directory: .
+
+  # ─── Job 5: Deploy to Production (with approval gate) ──────────
+  deploy-production:
+    name: "Deploy → Production"
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    environment: production
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build-${{ github.run_number }}
+          path: deploy/
+
+      - name: Simulate production deployment
+        run: |
+          echo "🚀 Deploying to PRODUCTION..."
+          echo "   → Same artifact that passed staging"
+          cat deploy/BUILD_INFO.txt
+          sleep 2
+          echo ""
+          echo "   → Running smoke test"
+          python deploy/app.py
+          echo ""
+          echo "✅ Production deployment complete!"
+        working-directory: .
+
+      - name: Production summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 🚀 Production Deployment
+          - **Environment:** production
+          - **Artifact:** \`app-build-${{ github.run_number }}\`
+          - **Status:** ✅ Deployed
+          - **Same artifact as staging:** Yes — build once, deploy many
+          EOF
+        working-directory: .
