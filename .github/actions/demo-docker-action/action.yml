@@ -1,0 +1,20 @@
+name: "Demo Docker Action"
+description: "A Docker-based action that greets someone from inside a container"
+author: "Workshop Demo"
+
+inputs:
+  name:
+    description: "Who to greet"
+    required: true
+  style:
+    description: "Greeting style: friendly or formal"
+    required: false
+    default: "friendly"
+
+outputs:
+  greeting:
+    description: "The generated greeting"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"

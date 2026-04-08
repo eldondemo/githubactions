@@ -1,0 +1,73 @@
+# Demo 4b — Custom Docker Action
+#
+# Key concepts:
+#   - Docker-based actions: Dockerfile + entrypoint script
+#   - Inputs via INPUT_<NAME> env vars (uppercased)
+#   - Image is built on every run (visible overhead in logs)
+#   - Linux runners only
+#
+# Separate from Demo 4 to keep it optional / independent
+
+name: "Demo 4b — Docker Action"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/04b-*"
+      - ".github/actions/demo-docker-action/**"
+      - "demos/demo4b/**"
+
+  workflow_dispatch:
+
+jobs:
+  # ── Job 1: Run the Docker action ─────────────────────────
+  docker-action:
+    name: "Docker Action"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Docker action (friendly)
+        id: friendly
+        uses: ./.github/actions/demo-docker-action
+        with:
+          name: "Workshop Attendees"
+          style: "friendly"
+
+      - name: Run Docker action (formal)
+        id: formal
+        uses: ./.github/actions/demo-docker-action
+        with:
+          name: "Distinguished Guests"
+          style: "formal"
+
+      - name: Show outputs
+        run: |
+          echo "Friendly: ${{ steps.friendly.outputs.greeting }}"
+          echo "Formal:   ${{ steps.formal.outputs.greeting }}"
+
+      - name: Write summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## 🐳 Demo 4b — Docker Action
+
+          | Style | Greeting |
+          |-------|----------|
+          | **Friendly** | ${{ steps.friendly.outputs.greeting }} |
+          | **Formal** | ${{ steps.formal.outputs.greeting }} |
+
+          ### What to notice in the logs
+          - Look for the **"Build container"** step — this is the Docker image build overhead
+          - The second run reuses the image layer cache, so it's faster
+          - Inputs arrive as `INPUT_NAME` and `INPUT_STYLE` environment variables inside the container
+
+          ### Tradeoffs
+          | Pros | Cons |
+          |------|------|
+          | Any language, pinned toolchain | Linux runners only |
+          | Fully isolated environment | Image build/pull adds ~10-20s |
+          | No node_modules to commit | Harder to debug than JS/composite |
+          EOF
