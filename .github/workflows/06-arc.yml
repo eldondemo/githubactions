@@ -1,0 +1,129 @@
+# Demo 6 — Actions Runner Controller (ARC)
+# Shows self-hosted runner targeting + comparison with GitHub-hosted
+# The self-hosted job will only work if you have ARC installed in a cluster
+
+name: "Demo 6 — ARC Runners"
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner-label:
+        description: "Runner label for the self-hosted job"
+        default: "ubuntu-latest"
+        type: choice
+        options:
+          - ubuntu-latest
+          - arc-runners
+  push:
+    paths:
+      - "demos/demo6/**"
+      - ".github/workflows/06-arc.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  # ─── Job 1: Runs on the selected runner (self-hosted or GitHub-hosted) ───
+  configurable-runner-job:
+    name: "Run on: ${{ inputs.runner-label || 'ubuntu-latest' }}"
+    runs-on: ${{ inputs.runner-label || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Runner environment info
+        run: |
+          echo "::group::🖥️ Runner Details"
+          echo "Runner name:  ${RUNNER_NAME:-unknown}"
+          echo "Runner OS:    ${RUNNER_OS:-unknown}"
+          echo "Runner arch:  ${RUNNER_ARCH:-unknown}"
+          echo "Workspace:    ${GITHUB_WORKSPACE}"
+          echo "Runner tool cache: ${RUNNER_TOOL_CACHE:-not set}"
+          echo "::endgroup::"
+
+          echo "::group::💻 System Info"
+          uname -a || echo "uname not available"
+          echo "CPUs: $(nproc 2>/dev/null || echo 'N/A')"
+          echo "Memory: $(free -h 2>/dev/null | grep Mem || echo 'N/A')"
+          echo "Disk: $(df -h / 2>/dev/null | tail -1 || echo 'N/A')"
+          echo "::endgroup::"
+        shell: bash
+
+      - name: Check if ephemeral
+        run: |
+          echo "::group::🔄 Ephemeral Runner Check"
+          if [ -f /runner/.runner ]; then
+            echo "Runner config found — this is a persistent runner"
+          else
+            echo "No runner config at /runner/.runner — likely ephemeral (ARC default)"
+          fi
+
+          # ARC sets this label on scale-set runners
+          if [ -n "${ACTIONS_RUNNER_POD_NAME:-}" ]; then
+            echo "🐳 Running in Kubernetes pod: ${ACTIONS_RUNNER_POD_NAME}"
+            echo "::notice::This job ran on ARC runner pod: ${ACTIONS_RUNNER_POD_NAME}"
+          else
+            echo "Not running in a Kubernetes pod (GitHub-hosted or traditional self-hosted)"
+          fi
+          echo "::endgroup::"
+        shell: bash
+
+      - name: Sample work
+        run: |
+          echo "✅ Running build/test steps — same as any other runner"
+          echo "The workflow YAML is identical; only runs-on differs."
+        shell: bash
+
+      - name: Write step summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 🏃 Runner Report
+
+          | Property | Value |
+          |----------|-------|
+          | **Runner label** | \`${{ inputs.runner-label || 'ubuntu-latest' }}\` |
+          | **Runner name** | \`${RUNNER_NAME:-unknown}\` |
+          | **OS** | \`${RUNNER_OS:-unknown}\` |
+          | **Arch** | \`${RUNNER_ARCH:-unknown}\` |
+          | **K8s pod** | \`${ACTIONS_RUNNER_POD_NAME:-N/A}\` |
+
+          > If the K8s pod field shows a value, this job ran on an ARC-managed ephemeral runner.
+          EOF
+        shell: bash
+
+  # ─── Job 2: Always runs on GitHub-hosted for comparison ───
+  github-hosted-comparison:
+    name: "Comparison: GitHub-hosted (ubuntu-latest)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Runner environment info
+        run: |
+          echo "::group::🖥️ GitHub-Hosted Runner Details"
+          echo "Runner name:  ${RUNNER_NAME}"
+          echo "Runner OS:    ${RUNNER_OS}"
+          echo "Runner arch:  ${RUNNER_ARCH}"
+          echo "Workspace:    ${GITHUB_WORKSPACE}"
+          echo "::endgroup::"
+
+      - name: Sample work
+        run: |
+          echo "✅ Same steps, GitHub-hosted runner"
+          echo "Compare this job's logs with the configurable-runner-job above."
+
+      - name: Write step summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 🏃 GitHub-Hosted Runner Report
+
+          | Property | Value |
+          |----------|-------|
+          | **Runner label** | \`ubuntu-latest\` |
+          | **Runner name** | \`${RUNNER_NAME}\` |
+          | **OS** | \`${RUNNER_OS}\` |
+          | **Arch** | \`${RUNNER_ARCH}\` |
+
+          > This job always runs on GitHub-hosted for comparison with the configurable job.
+          EOF
