@@ -1,0 +1,35 @@
+name: "Demo Composite Action"
+description: "A composite action that runs multiple steps — no JS or Docker needed"
+author: "Workshop Demo"
+
+inputs:
+  name:
+    description: "Name to include in the report"
+    required: true
+  run-tests:
+    description: "Whether to run a test step"
+    required: false
+    default: "true"
+
+outputs:
+  report:
+    description: "The generated report text"
+    value: ${{ steps.generate.outputs.report }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Generate report
+      id: generate
+      shell: bash
+      run: |
+        REPORT="📋 Report for ${{ inputs.name }} — generated at $(date -u)"
+        echo "report=${REPORT}" >> "$GITHUB_OUTPUT"
+        echo "$REPORT"
+
+    - name: Run optional test
+      if: inputs.run-tests == 'true'
+      shell: bash
+      run: |
+        echo "🧪 Running tests for ${{ inputs.name }}..."
+        echo "✅ All checks passed"

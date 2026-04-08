@@ -1,0 +1,97 @@
+# Demo 4 — Custom Actions (JavaScript + Composite)
+#
+# Key concepts:
+#   - Package reusable logic as a custom action
+#   - JS action: uses @actions/core, runs on Node
+#   - Composite action: just YAML steps, no code needed
+#   - Inputs, outputs, and log annotations
+#
+# Triggers only on demo4 folder or this workflow file
+
+name: "Demo 4 — Custom Actions"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/04-*"
+      - ".github/actions/**"
+      - "demos/demo4/**"
+
+  workflow_dispatch:
+
+jobs:
+  # ── Job 1: Use the JavaScript action ──────────────────────
+  js-action:
+    name: "JavaScript Action"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run the JS action
+        id: greet
+        uses: ./.github/actions/demo-js-action
+        with:
+          message: "Hello from the custom JS action!"
+          uppercase: "false"
+
+      - name: Use the action's output
+        run: |
+          echo "The action returned: ${{ steps.greet.outputs.result }}"
+
+      - name: Run JS action again (uppercase)
+        id: greet-upper
+        uses: ./.github/actions/demo-js-action
+        with:
+          message: "Now in uppercase"
+          uppercase: "true"
+
+      - name: Compare outputs
+        run: |
+          echo "Normal:    ${{ steps.greet.outputs.result }}"
+          echo "Uppercase: ${{ steps.greet-upper.outputs.result }}"
+
+  # ── Job 2: Use the Composite action ──────────────────────
+  composite-action:
+    name: "Composite Action"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run the composite action
+        id: report
+        uses: ./.github/actions/demo-composite-action
+        with:
+          name: "Demo 4 Workshop"
+          run-tests: "true"
+
+      - name: Use the composite action's output
+        run: |
+          echo "Report: ${{ steps.report.outputs.report }}"
+
+  # ── Job 3: Summary comparing both action types ────────────
+  summary:
+    name: "Summary"
+    runs-on: ubuntu-latest
+    needs: [js-action, composite-action]
+
+    steps:
+      - name: Write comparison summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## 🔧 Demo 4 — Custom Actions Summary
+
+          | Type | Pros | Cons |
+          |------|------|------|
+          | **JavaScript** | Full Node.js power, `@actions/core` for annotations/summaries, cross-platform | Requires `node_modules` committed or bundled |
+          | **Composite** | Pure YAML, no build step, easy to start | Limited to shell steps, no native annotation API |
+          | **Docker** *(mentioned)* | Pinned toolchain, any language | Linux-only, image build/pull time |
+
+          > 💡 Start with **composite** for simple multi-step reuse.
+          > Move to **JS** when you need logic, annotations, or cross-platform support.
+          > Use **Docker** when you need a locked-down toolchain.
+          EOF

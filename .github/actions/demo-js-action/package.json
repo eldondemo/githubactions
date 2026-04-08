@@ -1,0 +1,9 @@
+{
+  "name": "demo-js-action",
+  "version": "1.0.0",
+  "description": "Demo 4 — A simple JavaScript custom action",
+  "main": "index.js",
+  "dependencies": {
+    "@actions/core": "^1.10.1"
+  }
+}

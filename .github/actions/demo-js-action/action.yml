@@ -1,0 +1,20 @@
+name: "Demo JS Action"
+description: "A simple JavaScript action that greets someone and returns a result"
+author: "Workshop Demo"
+
+inputs:
+  message:
+    description: "The greeting message"
+    required: true
+  uppercase:
+    description: "Whether to uppercase the result"
+    required: false
+    default: "false"
+
+outputs:
+  result:
+    description: "The formatted greeting result"
+
+runs:
+  using: "node20"
+  main: "index.js"
