@@ -1,0 +1,39 @@
+# Demo 1b — Checkout, Scripts & Manual Triggers
+#
+# Key concepts:
+#   - uses: (marketplace action) vs run: (shell command)
+#   - actions/checkout@v4 — cloning your repo into the runner
+#   - workflow_dispatch — manual trigger with custom inputs
+#   - Running a script from your repo
+
+name: "Demo 1b — Checkout, Scripts & Manual Triggers"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/01b-*"
+      - "demos/demo1b/**"
+
+  workflow_dispatch:
+    inputs:
+      greeting:
+        description: "Who should we greet?"
+        required: false
+        default: "GitHub Actions Workshop"
+
+jobs:
+  greet:
+    name: "Greet"
+    runs-on: ubuntu-latest
+
+    steps:
+      # uses: calls a marketplace action — this one clones your repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # run: executes a shell command — now we can use files from the repo
+      - name: Run greeting script
+        run: |
+          chmod +x demos/demo1b/greet.sh
+          demos/demo1b/greet.sh "${{ github.event.inputs.greeting || 'GitHub Actions Workshop' }}"

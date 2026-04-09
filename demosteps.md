@@ -4,49 +4,109 @@
 
 ---
 
-## Demo 1 — Workflows (Triggers, Jobs, Steps, Marketplace Actions)
+## Demo 1a — Hello World (the simplest possible workflow)
 
-**Time:** ~10 min
+**Time:** ~5 min
 
 ### Talk Track
 
 - A workflow is a YAML file in `.github/workflows/`
-- Every workflow has: `name`, `on` (trigger), and `jobs`
-- Each job has `steps` — either `uses:` (marketplace action) or `run:` (shell command)
+- Every workflow needs: `name`, `on` (trigger), and `jobs`
+- `run:` executes a shell command on the runner
 
 ### Steps
 
 1. **Open the workflow file**
-   - Navigate to `.github/workflows/01-workflows.yml`
-   - Walk through the structure top to bottom:
-     - **Triggers:** `push` to `main` with path filters + `workflow_dispatch` with a `greeting` input
-     - **Matrix strategy:** runs on both `ubuntu-latest` and `windows-latest`
-     - **Step 1 — `uses:`**: `actions/checkout@v4` (marketplace action)
-     - **Step 2 — `run:`**: executes `greet.sh` (shell command)
-     - **Step 3:** prints environment details using `${{ github }}` context
-     - **Step 4:** writes a job summary using `GITHUB_STEP_SUMMARY`
+   - Navigate to `.github/workflows/01a-hello-world.yml`
+   - Walk through — it's tiny:
+     - **`on: push`** with path filter — triggers when files in `demos/demo1a/` change
+     - **One job** (`hello`) running on `ubuntu-latest`
+     - **Two steps:** `echo "Hello"` and `date -u`
+   - Point out: this is the absolute minimum — no checkout, no marketplace actions, just shell commands
 
-2. **Show the greeting script**
-   - Navigate to `demos/demo1/greet.sh`
-   - Point out it's a plain bash script — nothing special
-
-3. **Trigger the workflow — make a small edit**
-   - Edit `demos/demo1/greet.sh` on GitHub (pencil icon)
-   - Change the greeting, e.g. `"Hello, ${NAME}! 👋"` → `"Hey there, ${NAME}! 🎉"`
+2. **Trigger the workflow — make a small edit**
+   - Edit `demos/demo1a/demo1a.md` on GitHub (pencil icon)
+   - Add a comment like `<!-- demo run -->`
    - Commit directly to `main`
 
-4. **Show the workflow run**
+3. **Show the workflow run**
    - Go to the **Actions** tab
-   - Click on the `Demo 1 — Workflows` run that just triggered
-   - Point out: **two jobs** running (one per matrix OS)
-   - Expand a job → walk through the step logs
-   - Click the **Summary** tab → show the `GITHUB_STEP_SUMMARY` markdown table
+   - Click on `Demo 1a — Hello World`
+   - Expand the job → show "Hello, GitHub Actions! 🚀" in the logs
+   - Point out: that's it — you just automated something with 10 lines of YAML
 
-5. **Key callouts**
-   - `uses:` = reusable action from the marketplace (or a local path)
-   - `run:` = inline shell command
-   - Matrix strategy runs the same job across multiple configurations
-   - `GITHUB_STEP_SUMMARY` gives you rich markdown output in the run summary
+---
+
+## Demo 1b — Checkout, Scripts & Manual Triggers
+
+**Time:** ~5 min
+
+### Talk Track
+
+- `uses:` calls a pre-built action from the marketplace (vs `run:` which is inline shell)
+- Without `actions/checkout`, the runner has an empty workspace — your repo files aren't there
+- `workflow_dispatch` adds a "Run workflow" button so you can trigger manually with custom inputs
+
+### Steps
+
+1. **Open the workflow file**
+   - Navigate to `.github/workflows/01b-checkout-and-scripts.yml`
+   - Walk through:
+     - **Triggers:** `push` + `workflow_dispatch` with a `greeting` input
+     - **Step 1 — `uses:`**: `actions/checkout@v4` — clones the repo onto the runner
+     - **Step 2 — `run:`**: executes `greet.sh` with the input value
+   - Highlight the difference: `uses:` = pre-built action, `run:` = shell command
+
+2. **Show the greeting script**
+   - Navigate to `demos/demo1b/greet.sh`
+   - Point out it's a plain bash script — the workflow just calls it
+
+3. **Trigger manually (workflow_dispatch)**
+   - Go to the **Actions** tab → "Demo 1b" → click **"Run workflow"**
+   - Type a custom greeting (e.g., the customer's name) → click Run
+   - Show the run → expand the greeting step → see the custom message
+
+4. **Key callouts**
+   - `actions/checkout@v4` is the most-used action — almost every workflow starts with it
+   - `workflow_dispatch` is great for on-demand tasks (deployments, reports, testing)
+   - Inputs make manual triggers flexible
+
+---
+
+## Demo 1c — Context Variables, Summaries & Matrix Strategy
+
+**Time:** ~5 min
+
+### Talk Track
+
+- GitHub Actions knows about your repo, branch, actor, and more via `${{ github.* }}`
+- `GITHUB_STEP_SUMMARY` lets you write rich Markdown that shows up in the Actions summary tab
+- Matrix strategy runs the same job across multiple configurations in parallel
+
+### Steps
+
+1. **Open the workflow file**
+   - Navigate to `.github/workflows/01c-summaries-and-matrix.yml`
+   - Walk through:
+     - **Matrix:** `os: [ubuntu-latest, windows-latest]` — creates two parallel jobs
+     - **Step 1:** prints context variables (`github.repository`, `github.actor`, `runner.os`, etc.)
+     - **Step 2:** writes a Markdown summary table to `GITHUB_STEP_SUMMARY`
+
+2. **Trigger the workflow — make a small edit**
+   - Edit `demos/demo1c/demo1c.md` on GitHub
+   - Add a comment like `<!-- demo run -->`
+   - Commit directly to `main`
+
+3. **Show the workflow run**
+   - Go to the **Actions** tab → click `Demo 1c — Summaries & Matrix`
+   - Point out: **two jobs** running in parallel (ubuntu + windows)
+   - Expand one → show the context variables printed in the logs
+   - Click the **Summary** tab → show the rendered Markdown table
+
+4. **Key callouts**
+   - `${{ github.* }}` context is available in every workflow — no setup needed
+   - `GITHUB_STEP_SUMMARY` turns workflows into reporting/dashboard tools
+   - Matrix strategy = test across OS, language versions, etc. without duplicating jobs
 
 ---
 

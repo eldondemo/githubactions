@@ -1,0 +1,53 @@
+# Demo 1c — Context Variables, Summaries & Matrix Strategy
+#
+# Key concepts:
+#   - ${{ github.* }} context — repo, branch, actor, trigger info
+#   - GITHUB_STEP_SUMMARY — rich Markdown in the Actions summary tab
+#   - Matrix strategy — run the same job across multiple configurations
+
+name: "Demo 1c — Summaries & Matrix"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/01c-*"
+      - "demos/demo1c/**"
+
+  workflow_dispatch:
+
+jobs:
+  info:
+    name: "Info (${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Print environment details
+        shell: bash
+        run: |
+          echo "🔹 Repository : ${{ github.repository }}"
+          echo "🔹 Branch     : ${{ github.ref_name }}"
+          echo "🔹 Trigger    : ${{ github.event_name }}"
+          echo "🔹 Runner OS  : ${{ runner.os }}"
+          echo "🔹 Actor      : ${{ github.actor }}"
+
+      - name: Write job summary
+        shell: bash
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## 🚀 Demo 1c — Run Summary
+
+          | Detail         | Value |
+          |----------------|-------|
+          | **Repository** | `${{ github.repository }}` |
+          | **Branch**     | `${{ github.ref_name }}` |
+          | **Trigger**    | `${{ github.event_name }}` |
+          | **Runner OS**  | `${{ runner.os }}` |
+          | **Actor**      | `${{ github.actor }}` |
+
+          > ✅ Completed on **${{ matrix.os }}**
+          EOF

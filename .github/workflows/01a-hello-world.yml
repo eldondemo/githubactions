@@ -1,0 +1,27 @@
+# Demo 1a — Hello World (the simplest possible workflow)
+#
+# Key concepts:
+#   - name / on / jobs / steps
+#   - Trigger: push
+#   - run: executes a shell command
+
+name: "Demo 1a — Hello World"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/01a-*"
+      - "demos/demo1a/**"
+
+jobs:
+  hello:
+    name: "Say Hello"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Hello World
+        run: echo "Hello, GitHub Actions! 🚀"
+
+      - name: Show the date
+        run: date -u
