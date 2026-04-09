@@ -3,7 +3,7 @@
 # Key concepts:
 #   - ${{ github.* }} context — repo, branch, actor, trigger info
 #   - GITHUB_STEP_SUMMARY — rich Markdown in the Actions summary tab
-#   - Matrix strategy — run the same job across multiple configurations
+#   - Matrix strategy — run the same job across multiple configurations 
 
 name: "Demo 1c — Summaries & Matrix"
 
