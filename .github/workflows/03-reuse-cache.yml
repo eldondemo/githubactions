@@ -7,7 +7,7 @@
 #   - Policy concepts (discussed in talk track)
 #
 # "Small Upgrade": passes different node versions to show how
-# the reusable workflow accepts inputs
+# the reusable workflow accepts inputs 
 
 name: "Demo 3 — Reuse & Cache"
 
