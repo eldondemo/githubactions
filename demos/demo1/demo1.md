@@ -10,6 +10,7 @@ Understand workflow file location, `on:` triggers, job/step anatomy, and how to 
 
 - Workflows live in `.github/workflows/`
 - `on:` defines **when** a workflow runs (push, pull_request, workflow_dispatch, etc.)
+- `workflow_dispatch` lets you trigger a workflow manually from the Actions tab (the "Run workflow" button). You can define custom inputs (e.g., a greeting message) that the user fills in before running. Useful for on-demand tasks like deployments, report generation, or testing a workflow without pushing code.
 - Jobs run in parallel by default; steps run sequentially within a job
 - `uses:` calls a marketplace action; `run:` executes shell commands
 - `$GITHUB_STEP_SUMMARY` writes rich Markdown to the Actions summary tab
