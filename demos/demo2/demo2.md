@@ -47,7 +47,7 @@ permission-demo         ← runs in parallel, shows GITHUB_TOKEN override
 ## Try It
 
 - Push a change to `demos/demo2/` or the workflow file
-- Run manually from the Actions tab
+- **Note:** `workflow_dispatch` has been removed from this workflow — it can only be triggered by a push, not manually from the Actions tab
 - Staging deploys first, then production follows automatically
 - If you have required reviewers enabled, production will pause for approval
 - Create an open issue first so the permission-demo job can post a comment
