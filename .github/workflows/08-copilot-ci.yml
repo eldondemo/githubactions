@@ -1,4 +1,4 @@
-name: Copilot CI
+name: Demo 8 — Copilot CI
 
 on:
   push:
