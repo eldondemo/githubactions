@@ -6,7 +6,7 @@
 #   - Composite action: just YAML steps, no code needed
 #   - Inputs, outputs, and log annotations
 #
-# Triggers only on demo4 folder or this workflow file
+# Triggers only on demo4 folder or this workflow file 
 
 name: "Demo 4 — Custom Actions"
 
