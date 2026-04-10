@@ -41,6 +41,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Seed database
+        run: |
+          psql <<'SQL'
+            CREATE TABLE products (
+              id SERIAL PRIMARY KEY,
+              name TEXT NOT NULL,
+              price NUMERIC(10,2) NOT NULL
+            );
+            INSERT INTO products (name, price) VALUES
+              ('Widget',  9.99),
+              ('Gadget', 24.95),
+              ('Gizmo',  14.50);
+          SQL
+
+      - name: Query seeded rows
+        run: |
+          echo "## 🐘 Rows from Postgres sidecar" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          psql -c "SELECT * FROM products ORDER BY id;" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo ""
+          echo "--- Query result ---"
+          psql -c "SELECT * FROM products ORDER BY id;"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
