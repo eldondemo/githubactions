@@ -1,4 +1,4 @@
-# Demo Steps — Demos 1–4 + Demo 8 (GitHub.com + Copilot walkthrough)
+# Demo Steps — All Demos (GitHub.com + Copilot walkthrough)
 
 > **Format:** For each demo, open the workflow YAML on GitHub, walk through it, make a small edit to trigger the workflow, then show the run in the Actions tab.
 
@@ -281,6 +281,203 @@
 
 ---
 
+## Demo 4b — Custom Docker Action
+
+**Time:** ~5 min
+
+### Talk Track
+
+- Docker actions are the third type of custom action — alongside JavaScript and Composite
+- They package a Dockerfile + entrypoint script, giving you a fully controlled toolchain
+- Inputs arrive as `INPUT_<NAME>` environment variables; outputs use `$GITHUB_OUTPUT` (same as always)
+- Tradeoff: Docker build overhead on every run, and Linux-only
+
+### Steps
+
+1. **Open the workflow file**
+   - Navigate to `.github/workflows/04b-docker-action.yml`
+   - Walk through:
+     - Calls `./.github/actions/demo-docker-action` with a `name` input
+     - Uses the output in a later step
+
+2. **Open the Docker action files**
+   - Navigate to `.github/actions/demo-docker-action/action.yml`
+   - Show: `runs: using: "docker"`, `image: "Dockerfile"` — this tells GitHub to build the image
+   - Open `Dockerfile` — simple Alpine image that copies and runs `entrypoint.sh`
+   - Open `entrypoint.sh` — reads `INPUT_NAME` from the environment, writes output via `$GITHUB_OUTPUT`
+
+3. **Trigger the workflow — make a small edit**
+   - Edit `demos/demo4b/demo4b.md` on GitHub
+   - Add a comment like `<!-- demo run 1 -->`
+   - Commit directly to `main`
+
+4. **Show the workflow run**
+   - Go to the **Actions** tab → click `Demo 4b — Docker Action`
+   - Expand the job logs → find the **"Build container"** step — this is the Docker build overhead
+   - Show the action output with the greeting
+   - Compare the total run time to the JS action from Demo 4
+
+5. **Key callouts**
+   - Docker build happens every run — visible overhead in the logs
+   - Inputs are automatically mapped to `INPUT_<NAME>` (uppercased)
+   - Docker actions only work on Linux runners
+   - Use cases: pinned toolchains, non-Node languages (Python, Go, Rust), licensed CLIs
+
+---
+
+## Demo 5 — Runners (GitHub-hosted) and Workflow Logs
+
+**Time:** ~10 min
+
+### Talk Track
+
+- `runs-on:` selects the runner — GitHub provides Ubuntu, Windows, and macOS
+- Workflow commands (`::group::`, `::notice::`, `::warning::`, `::error::`) make logs readable
+- `$GITHUB_STEP_SUMMARY` turns your workflow into a reporting tool
+- Artifacts persist files after the run — test reports, build outputs, debug info
+- `if: failure()` captures debug state only when something breaks
+
+### Steps
+
+1. **Open the workflow file**
+   - Navigate to `.github/workflows/05-runners-logs.yml`
+   - Walk through:
+     - **Job 1 — explore-runner:** log groups, annotations, runner hardware details
+     - **Job 2 — multi-os:** matrix with `ubuntu-latest` + `windows-latest`
+     - **Job 3 — test-and-artifacts:** runs tests, uploads report artifact; on failure, captures debug info
+
+2. **Show the test report script**
+   - Navigate to `demos/demo5/generate-report.sh`
+   - Point out it can run in pass or fail mode
+
+3. **Trigger a passing run**
+   - Edit `demos/demo5/demo5.md` on GitHub → add `<!-- demo run -->` → commit
+   - Show the run:
+     - Expand **explore-runner** → show foldable log groups and colored annotations
+     - Click the **Summary** tab → show the rendered Markdown table
+     - Show the **Artifacts** section → download `test-report`
+
+4. **(Optional) Trigger a failing run**
+   - Run manually with `should-fail: true`
+   - Show: `if: failure()` steps run, debug-info artifact is uploaded
+   - Download both artifacts and compare
+
+5. **Show "Re-run failed jobs"**
+   - After a failure, click **"Re-run failed jobs"** — only the failed job reruns
+
+6. **Key callouts**
+   - Log groups create foldable sections — great for noisy output
+   - Annotations show as colored bars and can link to specific files/lines
+   - Artifacts are your "black box recorder" — always upload test results
+   - `if: failure()` avoids wasting time on debug capture during passing runs
+
+---
+
+## Demo 6 — Actions Runner Controller (ARC)
+
+**Time:** ~10 min | **Note:** This is primarily a talk-track demo — ARC requires a Kubernetes cluster
+
+### Talk Track
+
+- GitHub-hosted runners cover most use cases, but sometimes you need private network access, custom toolchains, compliance, or cost control at scale
+- ARC (Actions Runner Controller) is a Kubernetes operator that manages ephemeral runner pods
+- From the workflow author's perspective, the only change is the `runs-on:` label
+- Everything else — checkout, caching, artifacts, secrets — works identically
+
+### Steps
+
+1. **Open the workflow file**
+   - Navigate to `.github/workflows/06-arc.yml`
+   - Walk through:
+     - **`workflow_dispatch`** with an input to choose the runner label
+     - **`self-hosted-job`** — targets `runs-on: arc-runners`, logs runner info, writes a step summary
+     - **`github-hosted-job`** — same steps on `ubuntu-latest` for comparison
+   - Highlight: the steps are identical, only `runs-on` differs
+
+2. **Show the ARC architecture (talk track with diagram)**
+   - Explain the flow: workflow queues job → ARC controller sees queued job → scales up a runner pod → pod picks up the job → completes → pod is destroyed
+   - Key point: the cluster reaches *out* to GitHub (no inbound firewall rules)
+   - Ephemeral = clean environment every time
+
+3. **Show the installation overview**
+   - Two Helm commands: one for the controller, one for a runner scale set
+   - `minRunners: 0` means no cost when idle; `maxRunners` caps resources
+   - Point out: GitHub App auth is preferred over PATs for production
+
+4. **Run the github-hosted-job for comparison**
+   - From the Actions tab → **"Run workflow"** → use `ubuntu-latest`
+   - Show the run — same steps, same output as if it were on ARC
+
+5. **Key callouts**
+   - Self-hosted runners solve: private networks, custom tools, compliance, cost at scale
+   - ARC automates the lifecycle — no VMs to babysit
+   - Ephemeral runners = no leftover state between jobs
+   - Runner groups let you organize by team, environment, or workload
+
+---
+
+## Demo 7 — Full Python CI/CD Pipeline
+
+**Time:** ~10 min
+
+### Talk Track
+
+- This demo ties everything together: triggers, caching, matrix, environments, artifacts, and step summaries
+- It's the pattern teams replicate and scale — lint → test → build → deploy through environments
+- "Build once, deploy many" — the same artifact flows from staging to production with no rebuild
+
+### Prerequisites (do before the session)
+
+- Create environments: Settings → Environments → `staging` and `production` (if not done in Demo 2)
+- Optional: enable "Required reviewers" on `production` for an approval gate
+
+### Steps
+
+1. **Open the workflow file**
+   - Navigate to `.github/workflows/07-python-cicd.yml`
+   - Walk through the 5-stage pipeline:
+     - **Lint** — Ruff linter + formatter check (fast feedback)
+     - **Test** — Matrix: Python 3.11 + 3.12 in parallel, pytest with JUnit XML output, pip caching
+     - **Build** — `needs: [lint, test]`, packages app + metadata, uploads artifact
+     - **Deploy Staging** — `environment: staging`, downloads artifact, simulates deployment
+     - **Deploy Production** — `environment: production`, same artifact, approval gate (if configured)
+
+2. **Show the app code**
+   - Navigate to `demos/demo7/app.py` — simple math functions
+   - Navigate to `demos/demo7/test_app.py` — pytest tests
+   - Navigate to `demos/demo7/requirements.txt` — dependencies
+
+3. **Point out concepts from previous demos**
+   - Path-filtered triggers (Demo 1)
+   - Environments + approval gates (Demo 2)
+   - Caching (Demo 3)
+   - Artifacts (Demo 5)
+   - Step summaries (Demo 5)
+
+4. **Trigger the workflow — make a small edit**
+   - Edit `demos/demo7/app.py` on GitHub → add a comment → commit
+   - Or run manually from the Actions tab
+
+5. **Show the workflow run**
+   - Go to the **Actions** tab → click `Demo 7 — Python CI/CD`
+   - Show lint and test jobs running in parallel
+   - After they pass, build runs → uploads artifact
+   - Staging deploys automatically
+   - Production waits for approval (if configured) — click "Review deployments" to approve
+   - Click **Summary** → show the status cards each job writes
+
+6. **Download the test artifacts**
+   - Show the test-results artifacts (one per Python version)
+   - Open the JUnit XML — point out this integrates with CI dashboards in real projects
+
+7. **Key callouts**
+   - This is the standard CI/CD pattern — everything before this was a building block
+   - Build once, deploy many — no rebuild between environments
+   - If any gate fails (lint, test), downstream jobs are skipped automatically
+   - The same workflow handles both push and pull_request triggers
+
+---
+
 ## Demo 8 — Using GitHub Copilot to Create a Workflow (from scratch)
 
 **Time:** ~15 min | **Tool:** VS Code + Copilot Chat (ask mode)
@@ -372,3 +569,57 @@
 4. Show: two matrix jobs (Node 20 + Node 22), lint step, cache step, tests passing
 
 **Final callout:** _"We went from zero to a multi-version CI pipeline in 4 prompts. Copilot doesn't replace understanding — that's why we did Demos 1–4 first — but it dramatically speeds up the creation process."_
+
+---
+
+## Demo 9 — Service Containers (PostgreSQL sidecar for integration tests)
+
+**Time:** ~10 min
+
+### Talk Track
+
+- Sometimes unit tests aren't enough — you need a real database, cache, or message queue
+- GitHub Actions can spin up Docker containers alongside your job using `services:`
+- Health checks ensure the service is ready before your tests start
+- The containers are ephemeral — created fresh per job, torn down automatically
+
+### Steps
+
+1. **Open the workflow file**
+   - Navigate to `.github/workflows/09-service-containers.yml`
+   - Walk through:
+     - **Triggers:** `push` with path filter (`demos/demo9/**`) + `workflow_dispatch`
+     - **`services:` block:** spins up `postgres:16` as a sidecar container
+     - **`env:` on the container:** `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` — Postgres uses these to create the database on startup
+     - **`ports: 5432:5432`** — maps container port to the runner's `localhost`
+     - **`options:` with health check** — `pg_isready` runs every 10 seconds until Postgres is accepting connections
+     - **Job-level `env:`** — connection config (`PGHOST`, `PGPORT`, etc.) passed to the test process
+     - **Steps:** checkout → setup Node 20 → npm install → npm test
+
+2. **Show the app code**
+   - Navigate to `demos/demo9/index.js`
+   - Walk through: simple user CRUD module using the `pg` library — `addUser`, `getUser`, `listUsers`, `deleteUser`
+   - Point out: the code connects to `localhost:5432` — it doesn't know it's in CI
+
+3. **Show the tests**
+   - Navigate to `demos/demo9/index.test.js`
+   - Walk through: `beforeAll` creates the table, `beforeEach` truncates it, tests run CRUD operations against real Postgres
+   - Highlight: these are *integration tests* — no mocking, real SQL, real constraints (duplicate email rejection)
+
+4. **Trigger the workflow — make a small edit**
+   - Edit `demos/demo9/demo9.md` on GitHub
+   - Add a comment like `<!-- demo run 1 -->`
+   - Commit directly to `main`
+
+5. **Show the workflow run**
+   - Go to the **Actions** tab → click `Service Containers`
+   - Show the **Initialize containers** step — Postgres image is pulled and started
+   - Show the health check passing in the logs
+   - Expand the **npm test** step → show all 4 tests passing against real Postgres
+   - Show the **Stop containers** step at the end — automatic cleanup
+
+6. **Key callouts**
+   - `services:` works with any Docker image — Postgres, MySQL, Redis, RabbitMQ, etc.
+   - Health checks prevent the "connection refused" flakiness you'd get without them
+   - No external database needed — everything runs inside the GitHub Actions runner
+   - The same pattern works for multi-service setups (e.g., app + database + cache)
