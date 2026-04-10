@@ -1,4 +1,4 @@
-# Demo Steps — Demos 1–4 (GitHub.com walkthrough)
+# Demo Steps — Demos 1–4 + Demo 8 (GitHub.com + Copilot walkthrough)
 
 > **Format:** For each demo, open the workflow YAML on GitHub, walk through it, make a small edit to trigger the workflow, then show the run in the Actions tab.
 
@@ -278,3 +278,97 @@
    - JS actions need `node_modules` committed or bundled (use `@vercel/ncc` to bundle)
    - Composite actions are great for wrapping a sequence of shell steps into a reusable unit
    - Docker actions (Demo 4b) are a third option — any language, pinned toolchain, but Linux-only
+
+---
+
+## Demo 8 — Using GitHub Copilot to Create a Workflow (from scratch)
+
+**Time:** ~15 min | **Tool:** VS Code + Copilot Chat (ask mode)
+
+> **Format:** This demo is different — instead of walking through pre-written YAML, you ask Copilot Chat to generate the workflow live. Start with a simple prompt, then iterate with 3 follow-ups to add complexity. The audience watches the YAML get built in real-time.
+
+### Prerequisites
+
+- VS Code open with the repo
+- Copilot Chat panel open (ask mode)
+- `demos/demo8/` folder already exists with `package.json`, `index.js`, `index.test.js`, `.eslintrc.js`
+- No workflow file exists yet — you create it live
+
+---
+
+### Step 1 — Basic CI (bare minimum)
+
+**Copilot Chat prompt:**
+> _"Create a GitHub Actions workflow file called 08-copilot-ci.yml that runs on push to main. It should checkout the code, install Node.js 20, run npm install, and run npm test. The working directory is demos/demo8."_
+
+**What to show:**
+1. Paste the prompt into Copilot Chat
+2. Copilot generates a clean workflow: `on: push`, one job, 4 steps
+3. Accept the suggestion → file is created at `.github/workflows/08-copilot-ci.yml`
+4. Walk through the generated YAML briefly:
+   - "This is the same structure we saw in Demos 1a and 1b — trigger, job, steps"
+   - Point out `actions/checkout@v4`, `actions/setup-node@v4`, `npm install`, `npm test`
+
+**Callout:** _"One sentence describing what you want → a working workflow. You don't need to memorize YAML syntax."_
+
+---
+
+### Step 2 — Add linting before tests
+
+**Copilot Chat prompt:**
+> _"Add a linting step that runs npm run lint before the test step."_
+
+**What to show:**
+1. Copilot inserts an `npm run lint` step between install and test
+2. Point out the step ordering: lint runs first, and if it fails, tests don't run (steps are sequential)
+3. Accept the change
+
+**Callout:** _"Copilot keeps context from the previous prompt — it knows what workflow we're editing."_
+
+---
+
+### Step 3 — Add dependency caching
+
+**Copilot Chat prompt:**
+> _"Add npm dependency caching using actions/cache so npm install is skipped when package-lock.json hasn't changed."_
+
+**What to show:**
+1. Copilot adds `actions/cache@v4` with:
+   - `path: demos/demo8/node_modules`
+   - `key` using `hashFiles('**/package-lock.json')`
+2. May also add a conditional on the install step (`if: steps.cache.outputs.cache-hit != 'true'`)
+3. Accept the change
+4. Point out: "This is the exact same caching pattern we walked through in Demo 3 — Copilot knows the best practice"
+
+**Callout:** _"Copilot isn't just autocompleting — it's applying the same patterns the community uses."_
+
+---
+
+### Step 4 — Add matrix strategy for multiple Node versions
+
+**Copilot Chat prompt:**
+> _"Run this workflow on both Node 20 and Node 22 using a matrix strategy."_
+
+**What to show:**
+1. Copilot adds `strategy.matrix.node-version: [20, 22]` and parameterizes the `setup-node` step
+2. The job name may update to include the matrix variable
+3. Accept the change
+4. Point out: two parallel jobs will run — same concept from Demo 1c, generated from one sentence
+
+**Callout:** _"Four prompts, and we have a production-quality CI pipeline with linting, caching, and multi-version testing."_
+
+---
+
+### Wrap-up — Push and watch it run
+
+1. **Review the final workflow** — scroll through the complete YAML one more time
+2. **Commit and push** from VS Code terminal:
+   ```
+   git add .github/workflows/08-copilot-ci.yml demos/demo8/
+   git commit -m "Demo 8: Copilot-generated CI workflow"
+   git push
+   ```
+3. **Switch to GitHub.com** → Actions tab → watch `Demo 8` trigger
+4. Show: two matrix jobs (Node 20 + Node 22), lint step, cache step, tests passing
+
+**Final callout:** _"We went from zero to a multi-version CI pipeline in 4 prompts. Copilot doesn't replace understanding — that's why we did Demos 1–4 first — but it dramatically speeds up the creation process."_

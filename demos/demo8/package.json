@@ -1,0 +1,16 @@
+{
+  "name": "demo8-app",
+  "version": "1.0.0",
+  "description": "Node app for Demo 8 — Copilot builds the CI workflow",
+  "scripts": {
+    "test": "jest --verbose",
+    "lint": "eslint index.js"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "eslint": "^8.56.0"
+  }
+}
