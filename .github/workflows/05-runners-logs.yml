@@ -5,7 +5,7 @@
 #   - Log groups (folding), annotations (notice/warning/error)
 #   - Artifacts: upload test reports and debug info
 #   - Deliberate failure + if: failure() to capture state
-#   - $GITHUB_STEP_SUMMARY for rich output
+#   - $GITHUB_STEP_SUMMARY for rich output 
 
 name: "Demo 5 — Runners & Logs"
 
