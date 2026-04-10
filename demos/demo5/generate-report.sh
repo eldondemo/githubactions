@@ -1,6 +1,6 @@
 #!/bin/bash
 # generate-report.sh — Generates a sample test report for artifact upload
-# Usage: ./generate-report.sh [pass|fail]
+# Usage: ./generate-report.sh [pass|fail] 
 
 MODE="${1:-pass}"
 REPORT_DIR="test-reports"

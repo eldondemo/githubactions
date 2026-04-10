@@ -2,7 +2,7 @@
 
 **Theme:** "The simplest possible workflow."
 
-## Goal
+## Goal 
 
 See the bare minimum: a YAML file that runs a shell command when you push code.
 

@@ -4,7 +4,7 @@
 
 ## Goal
 
-Build a Docker-based custom action and see how it compares to the JS and composite actions from Demo 4.
+Build a Docker-based custom action and see how it compares to the JS and composite actions from Demo 4. 
 
 ## When Would You Use a Docker Action?
 
