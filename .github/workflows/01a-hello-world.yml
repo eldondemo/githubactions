@@ -13,7 +13,8 @@ on:
     paths:
       - ".github/workflows/01a-*"
       - "demos/demo1a/**"
-
+  workflow_dispatch:
+  
 jobs:
   hello:
     name: "Say Hello"
