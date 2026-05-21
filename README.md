@@ -2,6 +2,10 @@
 
 A hands-on workshop repo for learning GitHub Actions — from basic workflows to full CI/CD pipelines.
 
+update 1
+
+update 2
+
 ## Repository Structure
 
 ```
