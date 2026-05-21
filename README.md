@@ -4,6 +4,8 @@ A hands-on workshop repo for learning GitHub Actions — from basic workflows to
 
 update 1
 
+update 2
+
 ## Repository Structure
 
 ```
