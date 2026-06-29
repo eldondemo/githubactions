@@ -4,7 +4,7 @@
 #   - uses: (marketplace action) vs run: (shell command)
 #   - actions/checkout@v4 — cloning your repo into the runner
 #   - workflow_dispatch — manual trigger with custom inputs
-#   - Running a script from your repo 
+#   - Running a script from your repo  
 
 name: "Demo 1b — Checkout, Scripts & Manual Triggers"
 
