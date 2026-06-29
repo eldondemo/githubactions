@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "demos/demo8/**"
+      - ".github/workflows/08-copilot-ci.yml"
+  workflow_dispatch:
 
 jobs:
   test:
