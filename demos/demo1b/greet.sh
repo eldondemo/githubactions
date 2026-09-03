@@ -4,5 +4,5 @@
 
 NAME="${1:-World}"
 echo "Hello, ${NAME}! 👋"
-echo "This script was run at: $(date -u)"
+echo "This script was run today at: $(date -u)"
 echo "Running on: $(uname -s) $(uname -m)"
